@@ -10,7 +10,14 @@
 <label for="phoneCol">मोबाइल नंबर वाला कॉलम</label><select id="phoneCol" disabled><option>पहले फाइल अपलोड करें</option></select><label for="nameCol">नाम वाला कॉलम (वैकल्पिक)</label><select id="nameCol" disabled><option>पहले फाइल अपलोड करें</option></select>
 <label for="message">मैसेज लिखें</label><textarea id="message" placeholder="नमस्ते {name},&#10;Great India Technology की ओर से..."></textarea><div class="hint">नाम भरने के लिए {name} लिखें।</div><label class="check"><input id="consent" type="checkbox"><span>मैं पुष्टि करता/करती हूँ कि इन संपर्कों को संदेश भेजने की अनुमति है।</span></label><button id="start" class="primary full" disabled>पहला WhatsApp खोलें</button><button id="next" class="secondary full" disabled>अगला संपर्क खोलें</button><button id="mark" class="plain full" disabled>इस संपर्क को पूरा मानें</button><button id="reset" class="plain full">रीसेट करें</button><div class="hint">WhatsApp login केवल आधिकारिक WhatsApp Web पर करें।</div></section>
 <section class="panel"><h2>2. संपर्क और प्रगति</h2><div class="stats"><div class="stat"><strong id="total">0</strong><span>कुल पंक्तियाँ</span></div><div class="stat"><strong id="valid">0</strong><span>मान्य नंबर</span></div><div class="stat"><strong id="done">0</strong><span>WhatsApp खोले</span></div></div><div class="progress"><div id="bar"></div></div><div class="small" id="current">Excel फाइल अपलोड करने के बाद संपर्क यहाँ दिखेंगे।</div><div style="height:12px"></div><div class="tablewrap"><table><thead><tr><th>#</th><th>नाम</th><th>फोन</th><th>स्थिति</th></tr></thead><tbody id="tbody"><tr><td colspan="4" class="empty">अभी कोई संपर्क नहीं</td></tr></tbody></table></div><div class="hint">“खोले” का अर्थ चैट खुलना है, यह डिलीवरी या भेजे जाने की पुष्टि नहीं है।</div></section></div>
-<section class="panel" style="margin-top:18px" id="videoDownloader"><h2>3. Video Link Downloader</h2><div class="hint">उस वीडियो का सीधा URL डालें जिसे डाउनलोड करने की आपको अनुमति है। यह फीचर WhatsApp के मौजूदा फीचर्स से अलग है।</div><label for="videoURL">Direct video file link</label><input id="videoURL" type="url" placeholder="https://example.com/video.mp4"><div class="row" style="margin-top:12px"><button id="checkVideo" class="secondary" type="button">लिंक जाँचें</button><button id="downloadVideo" class="primary" type="button" disabled>वीडियो डाउनलोड करें</button></div><div class="hint" id="videoStatus" role="status" style="margin-top:10px">MP4, WebM या MOV जैसी direct video-file links इस्तेमाल करें। YouTube, Instagram, Facebook आदि के सामान्य पेज लिंक सीधे वीडियो फाइल नहीं होते; यह टूल उनके प्रतिबंधों को बायपास नहीं करता।</div><video id="videoPreview" controls style="display:none;width:100%;max-height:320px;margin-top:14px;border-radius:10px;background:#0f172a"></video></section>
+<section class="panel" style="margin-top:18px" id="videoDownloader">
+<h2>3. Website Video Finder & Downloader</h2>
+<div class="hint">किसी सार्वजनिक वीडियो पेज का URL डालें। टूल पेज के HTML/metadata में उपलब्ध वीडियो लिंक खोजेगा। यह लॉगिन, DRM या वेबसाइट की डाउनलोड पाबंदियों को बायपास नहीं करता।</div>
+<label for="videoURL">Website / video page link</label><input id="videoURL" type="url" placeholder="https://example.com/video-page" autocomplete="url">
+<div class="row" style="margin-top:12px"><button id="checkVideo" class="primary" type="button">वीडियो खोजें</button><button id="clearVideos" class="plain" type="button">साफ करें</button></div>
+<div class="hint" id="videoStatus" role="status" style="margin-top:12px">लिंक डालकर “वीडियो खोजें” दबाएँ। वीडियो मिलने पर सूची और डाउनलोड लिंक यहाँ दिखेंगे।</div>
+<div id="videoResults" style="display:grid;gap:10px;margin-top:14px"></div>
+</section>
 </main><footer>© Great India Technology · Demo contact data is processed in your browser and not uploaded to a Great India server.</footer>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script>
 const $=id=>document.getElementById(id);let rows=[],active=-1,opened=new Set(),completed=new Set();
@@ -26,8 +33,33 @@ function openFirst(){let c=selected().find(x=>x.phone&&!completed.has(x.i));open
 function openNext(){let list=selected();let c=list.find(x=>x.phone&&x.i>active&&!completed.has(x.i));openContact(c)}
 $('start').addEventListener('click',openFirst);$('next').addEventListener('click',openNext);$('mark').addEventListener('click',()=>{if(active>=0)completed.add(active);active=-1;$('current').textContent='संपर्क को पूरा चिह्नित किया। अगला संपर्क खोल सकते हैं।';render()});$('reset').addEventListener('click',()=>{if(!confirm('वर्तमान सूची और प्रगति रीसेट करें?'))return;rows=[];active=-1;opened.clear();completed.clear();$('file').value='';$('phoneCol').innerHTML='<option>पहले फाइल अपलोड करें</option>';$('nameCol').innerHTML='<option>पहले फाइल अपलोड करें</option>';$('phoneCol').disabled=$('nameCol').disabled=true;$('message').value='';$('consent').checked=false;$('current').textContent='Excel फाइल अपलोड करने के बाद संपर्क यहाँ दिखेंगे।';render()});
 
-const videoURL=$('videoURL'),checkVideo=$('checkVideo'),downloadVideo=$('downloadVideo'),videoStatus=$('videoStatus'),videoPreview=$('videoPreview');
-function validDirectVideo(raw){try{const u=new URL(raw);if(!['https:','http:'].includes(u.protocol))return false;return /\\.(mp4|webm|mov|m4v|ogv)(?:$|\\?)/i.test(u.pathname+u.search)}catch{return false}}
-checkVideo.addEventListener('click',()=>{const raw=videoURL.value.trim();downloadVideo.disabled=true;videoPreview.style.display='none';videoPreview.removeAttribute('src');if(!validDirectVideo(raw)){videoStatus.textContent='यह direct video-file URL नहीं लग रहा। कृपया अनुमति प्राप्त MP4/WebM/MOV फाइल का सीधा लिंक डालें। सामान्य साइट पेज लिंक से यह टूल वीडियो निकाल नहीं सकता।';return}videoStatus.textContent='लिंक का फॉर्मेट सही दिख रहा है। सर्वर की अनुमति/CORS के अनुसार preview उपलब्ध हो सकता है।';videoPreview.src=raw;videoPreview.style.display='block';videoPreview.onerror=()=>{videoStatus.textContent='वीडियो preview नहीं खुला। लिंक की अनुमति, URL और साइट की पाबंदियाँ जाँचें; यह लिंक डाउनलोड के लिए उपलब्ध न भी हो सकता है।'};downloadVideo.disabled=false});
-downloadVideo.addEventListener('click',()=>{const raw=videoURL.value.trim();if(!validDirectVideo(raw)){videoStatus.textContent='पहले एक valid direct video-file link जाँचें।';return}const a=document.createElement('a');a.href=raw;a.download='video';a.target='_blank';a.rel='noopener noreferrer';document.body.appendChild(a);a.click();a.remove();videoStatus.textContent='डाउनलोड अनुरोध शुरू किया गया। यदि फाइल डाउनलोड न हो और नए टैब में खुले, तो साइट का सर्वर browser download को रोक रहा हो सकता है। केवल अधिकृत वीडियो डाउनलोड करें।'});
+const videoURL=$('videoURL'),checkVideo=$('checkVideo'),clearVideos=$('clearVideos'),videoStatus=$('videoStatus'),videoResults=$('videoResults');
+checkVideo.addEventListener('click',async()=>{
+ const page=videoURL.value.trim();
+ videoResults.innerHTML='';
+ let u;try{u=new URL(page);if(!['http:','https:'].includes(u.protocol))throw Error();}catch{videoStatus.textContent='कृपया सही http:// या https:// वेबसाइट लिंक डालें।';return;}
+ checkVideo.disabled=true;videoStatus.textContent='वीडियो लिंक खोजे जा रहे हैं…';
+ try{
+   const response=await fetch('/api/extract?url='+encodeURIComponent(u.href),{headers:{'Accept':'application/json'}});
+   const data=await response.json();
+   if(!response.ok)throw new Error(data.error||'इस पेज को पढ़ा नहीं जा सका।');
+   if(data.note)videoStatus.textContent=data.note;
+   const videos=Array.isArray(data.videos)?data.videos:[];
+   if(!videos.length){if(!data.note)videoStatus.textContent='इस पेज के HTML में सीधे उपलब्ध वीडियो लिंक नहीं मिले।';return;}
+   videoStatus.textContent='कुल '+videos.length+' वीडियो लिंक मिले। डाउनलोड की उपलब्धता स्रोत वेबसाइट पर निर्भर करती है।';
+   videos.forEach((v,i)=>{
+     const card=document.createElement('div');card.style.cssText='border:1px solid #e2e8f0;border-radius:12px;padding:14px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap';
+     const info=document.createElement('div');info.style.cssText='min-width:180px;flex:1';
+     const title=document.createElement('strong');title.textContent=(i+1)+'. '+(v.title||'Video '+(i+1));title.style.display='block';
+     const url=document.createElement('div');url.textContent=v.url;url.style.cssText='font-size:11px;color:#64748b;word-break:break-all;margin-top:6px';
+     info.append(title,url);
+     const actions=document.createElement('div');actions.style.cssText='display:flex;gap:8px;flex-wrap:wrap';
+     const open=document.createElement('a');open.href=v.url;open.target='_blank';open.rel='noopener noreferrer';open.textContent='वीडियो खोलें';open.style.cssText='padding:10px 12px;border-radius:8px;background:#eef2ff;color:#1d4ed8;text-decoration:none;font-size:12px;font-weight:bold';
+     const download=document.createElement('a');download.href=v.url;download.target='_blank';download.rel='noopener noreferrer';download.download='video-'+(i+1);download.textContent='Download';download.style.cssText='padding:10px 12px;border-radius:8px;background:#2563eb;color:white;text-decoration:none;font-size:12px;font-weight:bold';
+     actions.append(open,download);card.append(info,actions);videoResults.append(card);
+   });
+ }catch(err){videoStatus.textContent='वीडियो नहीं खोज पाए: '+err.message+' यदि साइट लॉगिन, JavaScript player या anti-bot सुरक्षा इस्तेमाल करती है, तो लिंक उपलब्ध न हो सकता है।';}
+ finally{checkVideo.disabled=false;}
+});
+clearVideos.addEventListener('click',()=>{videoURL.value='';videoResults.innerHTML='';videoStatus.textContent='किसी सार्वजनिक वीडियो पेज का URL डालें और “वीडियो खोजें” दबाएँ।'});
 </script></body></html>
